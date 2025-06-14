@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  csv-researcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-}
+      - CHAT_CONTEXT_LIMIT=${CHAT_CONTEXT_LIMIT:-3}
+    volumes:
+      # SQLite 데이터베이스와 업로드 파일 영속성을 위한 볼륨 마운트
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  data:
+    driver: local
+  uploads:
+    driver: local 
