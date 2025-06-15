@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Loader2, Sparkles, MessageCircle, Lightbulb, Copy, Check } from 'lucide-react';
-import { ChatMessage } from '@/shared/types';
+import { ChatMessage } from '@/types';
 import { cn } from '@/shared/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -340,7 +340,7 @@ export function ChatInterface({ fileId }: ChatInterfaceProps) {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
-    setCurrentReasoning('답변을 준비하고 있어요...');
+    setCurrentReasoning('답변을 준비하고 있습니다.');
 
     try {
       const response = await fetch('/api/chat', {
@@ -429,9 +429,9 @@ export function ChatInterface({ fileId }: ChatInterfaceProps) {
 
   const exampleQuestions = [
     "매출이 가장 높은 상위 10개 제품을 보여줘",
-    "월별 매출 추이를 분석해줘",
+    "월별 매출 추이를 파악해줘",
     "고객 연령대별 구매 패턴을 알려줘",
-    "데이터의 주요 통계를 요약해줘"
+    "데이터의 주요 통계를 분석해줘"
   ];
 
   return (

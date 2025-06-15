@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { processQueryWithEnhancedReAct } from '@/lib/enhanced-react-agent';
+import { processQueryWithEnhancedReAct } from '@/lib/react-agent';
 import { saveChatHistory } from '@/lib/chat-history';
 import { db } from '@/lib/database';
 
