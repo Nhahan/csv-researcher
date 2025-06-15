@@ -75,7 +75,56 @@ const executeSqlTool = tool(
       
       const dbResult = db.select(limitedQuery);
       if (!dbResult.success) {
-        throw new Error(dbResult.error);
+        // SQLite 함수 오류에 대한 더 자세한 에러 메시지 제공 (ReAct 패턴을 위해)
+        let errorMessage = dbResult.error || 'Unknown database error';
+        
+        if (errorMessage.includes('no such function: STDDEV')) {
+          errorMessage = `SQLite 오류: STDDEV 함수는 지원되지 않습니다.
+
+대신 다음 공식을 사용하세요:
+SQRT(AVG((컬럼명 - (SELECT AVG(컬럼명) FROM "${tableName}")) * (컬럼명 - (SELECT AVG(컬럼명) FROM "${tableName}"))))
+
+예시:
+SELECT SQRT(AVG(("합계" - (SELECT AVG("합계") FROM "${tableName}")) * ("합계" - (SELECT AVG("합계") FROM "${tableName}")))) AS 표준편차
+FROM "${tableName}";`;
+        } else if (errorMessage.includes('no such function: VARIANCE') || errorMessage.includes('no such function: VAR')) {
+          errorMessage = `SQLite 오류: VARIANCE 함수는 지원되지 않습니다.
+
+대신 다음 공식을 사용하세요:
+AVG((컬럼명 - (SELECT AVG(컬럼명) FROM "${tableName}")) * (컬럼명 - (SELECT AVG(컬럼명) FROM "${tableName}")))
+
+예시:
+SELECT AVG(("합계" - (SELECT AVG("합계") FROM "${tableName}")) * ("합계" - (SELECT AVG("합계") FROM "${tableName}"))) AS 분산
+FROM "${tableName}";`;
+        } else if (errorMessage.includes('no such function: MEDIAN')) {
+          errorMessage = `SQLite 오류: MEDIAN 함수는 지원되지 않습니다.
+
+대신 다음 방법을 사용하세요:
+WITH ordered AS (
+  SELECT 컬럼명, ROW_NUMBER() OVER (ORDER BY 컬럼명) as rn,
+         COUNT(*) OVER () as total
+  FROM "${tableName}"
+  WHERE 컬럼명 IS NOT NULL
+)
+SELECT AVG(컬럼명) as 중앙값
+FROM ordered 
+WHERE rn IN ((total + 1) / 2, (total + 2) / 2);`;
+        } else if (errorMessage.includes('no such function:')) {
+          const functionMatch = errorMessage.match(/no such function: (\w+)/);
+          if (functionMatch) {
+            errorMessage = `SQLite 오류: ${functionMatch[1]} 함수는 지원되지 않습니다.
+
+SQLite에서 사용 가능한 기본 함수들:
+- 집계 함수: COUNT, SUM, AVG, MIN, MAX
+- 수학 함수: ABS, ROUND, SQRT, POWER
+- 문자열 함수: LENGTH, SUBSTR, UPPER, LOWER
+- 날짜 함수: DATE, DATETIME, STRFTIME
+
+다른 접근 방법을 시도해보세요.`;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
       const result = dbResult.data || [];
 
@@ -517,7 +566,7 @@ export async function processQueryWithEnhancedReAct(
     const agent = await createEnhancedDataAnalysisAgent(fileId, fileName);
     
     if (onReasoning) {
-      onReasoning('질문을 이해하고 있어요...');
+      onReasoning('질문을 이해하고 있습니다.');
     }
     
     // 에이전트 실행 (개별 API 호출에 타임아웃/재시도 적용됨)
